@@ -1,0 +1,30 @@
+seed: 0
+device: cuda
+gamma: 0.99
+horizon: 16          # action-chunk length
+n_exec: 8            # actions executed per replan; PIN THIS for the main sweep
+
+env:
+  tasks: [reach-v3, push-v3, door-open-v3, drawer-close-v3,
+          peg-insert-side-v3, pick-place-v3]
+  max_steps: 500
+  metaworld_version: null   # fill in after pinning; results are version-specific
+
+data:
+  n_episodes: 100
+  noise_std: 0.3     # tune so base policy lands at 40-60% success
+
+policy:
+  n_train_steps: 100
+  n_denoise: 100     # sequential compute axis; sweep separately from K
+
+dynamics:
+  n_members: 5
+  frac: 1.0          # sweep {0.1, 0.3, 1.0} to vary model error independently
+
+search:
+  k_max: 64
+  betas: [0.0, 1.0, 5.0]
+
+eval:
+  n_episodes: 50
