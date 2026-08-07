@@ -3,3 +3,8 @@ __pycache__/
 *.pt
 *.ckpt
 wandb/
+*.npz
+*.jsonl
+experiments/figs/
+.pytest_cache/
+*.egg-info/
