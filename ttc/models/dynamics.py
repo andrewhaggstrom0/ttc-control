@@ -42,10 +42,16 @@ class DynamicsEnsemble(nn.Module):
         ).to(device)
         self.register_buffer("o_mean", torch.zeros(obs_dim, device=device))
         self.register_buffer("o_std", torch.ones(obs_dim, device=device))
+        # Meta-World's 39-dim obs contains permanently-constant dims whose std
+        # is the 1e-6 clamp floor. Dividing by that inflates the disagreement
+        # metric by ~1e6 and lets junk dims dominate. Mask them out of the
+        # uncertainty readout; training is unaffected (constant dims map to 0).
+        self.register_buffer("dis_mask", torch.ones(obs_dim, device=device))
 
     def set_normalizer(self, mean, std):
         self.o_mean.copy_(torch.as_tensor(mean, device=self.device).float())
         self.o_std.copy_(torch.as_tensor(std, device=self.device).float().clamp_min(1e-6))
+        self.dis_mask.copy_((self.o_std > 1e-3).float())
 
     def _in(self, obs, act):
         return torch.cat([(obs - self.o_mean) / self.o_std, act], dim=-1)
@@ -67,10 +73,15 @@ class DynamicsEnsemble(nn.Module):
         """
         x = self._in(obs, act)
         mus = torch.stack([m(x)[0] for m in self.members])       # (n, B, obs+1)
-        next_obs = obs[None] + mus[..., :-1]
+        # Zero the delta on dead dims. They are constant in the data, but the
+        # net predicts small nonzero values for them; re-normalizing by the
+        # 1e-6 std floor amplifies those ~1e6x into the next step's input,
+        # which compounds to NaN over a multi-step rollout.
+        next_obs = obs[None] + mus[..., :-1] * self.dis_mask
         rew = mus[..., -1]
         # Disagreement = mean per-dim std across members, normalized by obs scale.
-        disagreement = (next_obs.std(0) / self.o_std).mean(-1)
+        w = self.dis_mask / self.dis_mask.sum().clamp_min(1)
+        disagreement = ((next_obs.std(0) / self.o_std) * w).sum(-1)
         return next_obs, rew, disagreement
 
     @torch.no_grad()
@@ -97,8 +108,14 @@ class DynamicsEnsemble(nn.Module):
             # Each member reads its own slice of the flattened batch.
             mus = mus.reshape(self.n, self.n, K, -1)
             mus = mus[torch.arange(self.n), torch.arange(self.n)]  # (n, K, obs+1)
-            o = o + mus[..., :-1]
+            o = o + mus[..., :-1] * self.dis_mask
+            # Belt and braces: keep predicted states inside a plausible range so
+            # one bad step cannot poison the remaining horizon.
+            lo = self.o_mean - 10 * self.o_std
+            hi = self.o_mean + 10 * self.o_std
+            o = torch.clamp(o, lo, hi)
             ret += (gamma ** h) * mus[..., -1]
-            dis += (o.std(0) / self.o_std).mean(-1)
+            w = self.dis_mask / self.dis_mask.sum().clamp_min(1)
+            dis += ((o.std(0) / self.o_std) * w).sum(-1)
 
         return ret.mean(0), dis / H, o

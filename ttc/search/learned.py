@@ -27,8 +27,9 @@ class LearnedDynamicsSelector(Selector):
         self.horizon, self.device = horizon, device
 
     @property
-    def name(self):  # beta appears in the run label so sweeps stay separable
-        return f"learned_beta{self.beta:g}"
+    def name(self):  # horizon and beta both appear so sweeps stay separable
+        h = self.horizon if self.horizon is not None else "full"
+        return f"learned_h{h}_beta{self.beta:g}"
 
     def _score(self, obs, candidates, env, info):
         o = torch.as_tensor(obs, device=self.device).float().reshape(-1)

@@ -139,7 +139,7 @@ def run_episode(
 
 
 def run_sweep(
-    env_fn,
+    env_builder,
     policy,
     selectors: Sequence[Selector],
     *,
@@ -155,6 +155,12 @@ def run_sweep(
     Episode ordering is outermost so that a killed job still leaves complete,
     balanced data for the episodes it finished. Results append to JSONL as they
     land; nothing is held in memory across episodes.
+
+    env_builder takes a SEED, not zero args. Meta-World's RandomTaskSelectWrapper
+    draws a goal configuration at CONSTRUCTION time, so building the env without
+    a seed gives every (selector, K) a different task instance and destroys the
+    pairing the whole design depends on. Symptom when this is wrong: `first`
+    success varies with K even though it always returns candidate 0.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -171,11 +177,15 @@ def run_sweep(
             for sel in selectors:
                 cache: dict[int, np.ndarray] = {}
                 for k in ks:
-                    rec = run_episode(
-                        env_fn(), policy, sel, episode_id=ep, k=k, task=task,
-                        max_steps=max_steps, n_exec=n_exec,
-                        candidate_cache=cache if k == k_max else None,
-                    )
+                    env = env_builder(ep)   # same seed -> same task instance
+                    try:
+                        rec = run_episode(
+                            env, policy, sel, episode_id=ep, k=k, task=task,
+                            max_steps=max_steps, n_exec=n_exec,
+                            candidate_cache=cache if k == k_max else None,
+                        )
+                    finally:
+                        env.close()
                     f.write(rec.to_json() + "\n")
                     f.flush()
     return out_path
