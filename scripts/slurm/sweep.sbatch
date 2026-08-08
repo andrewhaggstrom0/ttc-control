@@ -16,7 +16,7 @@ export MUJOCO_GL=egl
 export PYOPENGL_PLATFORM=egl
 export TOKENIZERS_PARALLELISM=false
 
-TASKS=(reach-v3 push-v3 door-open-v3 drawer-close-v3 peg-insert-side-v3 pick-place-v3)
+TASKS=(peg-insert-side-v3 basketball-v3 stick-pull-v3 shelf-place-v3 disassemble-v3 bin-picking-v3)
 TASK=${TASKS[$SLURM_ARRAY_TASK_ID]}
 
 source ~/.bashrc

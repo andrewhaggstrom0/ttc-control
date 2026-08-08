@@ -23,8 +23,8 @@ from ttc.envs.snapshot import SnapshotWrapper
 
 # Spread of difficulty: two easy, two contact-rich, two long-horizon.
 DEFAULT_TASKS = (
-    "reach-v3", "push-v3", "door-open-v3",
-    "drawer-close-v3", "peg-insert-side-v3", "pick-place-v3",
+    "peg-insert-side-v3", "basketball-v3", "stick-pull-v3",
+    "shelf-place-v3", "disassemble-v3", "bin-picking-v3",
 )
 
 

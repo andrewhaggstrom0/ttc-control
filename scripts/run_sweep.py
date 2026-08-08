@@ -1,4 +1,10 @@
-"""Load checkpoints, assemble selectors, run the paired sweep."""
+"""Load checkpoints, assemble selectors, run the paired sweep.
+
+torch>=2.6 defaults torch.load to weights_only=True, which rejects the numpy
+arrays we store for observation normalization. These checkpoints are produced by
+this repo on this machine, so weights_only=False is safe; the alternative is
+allowlisting numpy's reconstructor, which is more fragile across versions.
+"""
 
 from __future__ import annotations
 
@@ -19,7 +25,15 @@ from ttc.search.value_bon import ValueBoNSelector
 
 
 def load_policy(path):
-    ck = torch.load(path, map_location="cuda")
+    ck = torch.load(path, map_location="cuda", weights_only=False)
+    if ck.get("policy_type") == "mlp":
+        from ttc.policies.gaussian_bc import GaussianBCPolicy
+        pol = GaussianBCPolicy(ck["obs_dim"], ck["act_dim"], ck["horizon"],
+                               sample_std=ck.get("sample_std", 0.15))
+        pol.load_state_dict(ck["state_dict"])
+        pol.set_normalizer(ck["obs_mean"], ck["obs_std"])
+        pol.eval()
+        return pol
     pol = DiffusionPolicy(ck["obs_dim"], ck["act_dim"], horizon=ck["horizon"])
     pol.load_state_dict(ck["state_dict"])
     pol.set_normalizer(ck["obs_mean"], ck["obs_std"])
@@ -28,14 +42,14 @@ def load_policy(path):
 
 
 def load_dynamics(path):
-    ck = torch.load(path, map_location="cuda")
+    ck = torch.load(path, map_location="cuda", weights_only=False)
     d = DynamicsEnsemble(ck["obs_dim"], ck["act_dim"], ck["n_members"])
     d.load_state_dict(ck["state_dict"]); d.eval()
     return d
 
 
 def load_value(path):
-    ck = torch.load(path, map_location="cuda")
+    ck = torch.load(path, map_location="cuda", weights_only=False)
     v = ValueFunction(ck["obs_dim"]); v.load_state_dict(ck["state_dict"]); v.eval()
     return v
 

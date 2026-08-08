@@ -55,10 +55,18 @@ class DiffusionPolicy(nn.Module):
         self.device = device
         self.net = ConditionalUnet1D(obs_dim, act_dim, horizon).to(device)
 
-        betas = torch.linspace(1e-4, 0.02, n_train_steps, device=device)
-        alphas = 1.0 - betas
+        # Squared-cosine schedule (Nichol & Dhariwal; used by Diffusion Policy).
+        # NOT linspace(1e-4, 0.02): those endpoints are DDPM's and assume 1000
+        # steps. Over 100 steps they leave alphas_cum[-1] ~= 0.37, so training
+        # never sees near-pure noise while sampling starts from pure noise --
+        # a train/sample mismatch that caps the model far below usable quality.
+        t = torch.linspace(0, 1, n_train_steps + 1, device=device)
+        f = torch.cos((t + 0.008) / 1.008 * torch.pi / 2) ** 2
+        alphas_cum = (f / f[0])[1:]
+        betas = (1 - alphas_cum / torch.cat([f[:1] / f[0], alphas_cum[:-1]]))
+        betas = betas.clamp(max=0.999)
         self.register_buffer("betas", betas)
-        self.register_buffer("alphas_cum", torch.cumprod(alphas, dim=0))
+        self.register_buffer("alphas_cum", alphas_cum)
         self.register_buffer("obs_mean", torch.zeros(obs_dim, device=device))
         self.register_buffer("obs_std", torch.ones(obs_dim, device=device))
 
