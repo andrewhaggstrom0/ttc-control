@@ -1,5 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ttc-sweep
+#SBATCH -A engr-acad-cse5100
+#SBATCH -p condo-cse5100
 #SBATCH --gres=gpu:a40:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
