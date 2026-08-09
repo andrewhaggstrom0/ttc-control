@@ -1,0 +1,5 @@
+task	k	n	learned	oracle	mean
+stick-pull-v3	2	90	0.3222	0.3222	0.3000
+stick-pull-v3	4	90	0.2889	0.3333	0.2972
+stick-pull-v3	8	90	0.3000	0.3667	0.3014
+stick-pull-v3	16	90	0.3000	0.3889	0.3021

@@ -1,0 +1,5 @@
+task	k	n	learned	oracle	mean
+basketball-v3	2	90	0.3778	0.4444	0.3944
+basketball-v3	4	90	0.3444	0.4333	0.3972
+basketball-v3	8	90	0.3444	0.4556	0.4125
+basketball-v3	16	90	0.3444	0.4778	0.4194

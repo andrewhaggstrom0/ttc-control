@@ -1,0 +1,5 @@
+task	k	n	learned	oracle	mean
+bin-picking-v3	2	90	0.4556	0.3444	0.3944
+bin-picking-v3	4	90	0.4111	0.3556	0.3972
+bin-picking-v3	8	90	0.4667	0.4667	0.4000
+bin-picking-v3	16	90	0.4333	0.4778	0.4062

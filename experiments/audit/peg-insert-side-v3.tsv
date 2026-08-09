@@ -1,0 +1,5 @@
+task	k	n	learned	oracle	mean
+peg-insert-side-v3	2	90	0.6778	0.6667	0.6556
+peg-insert-side-v3	4	90	0.6444	0.6667	0.6556
+peg-insert-side-v3	8	90	0.6222	0.6111	0.6444
+peg-insert-side-v3	16	90	0.6667	0.6222	0.6521

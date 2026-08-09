@@ -1,0 +1,6 @@
+disassemble-v3	experiments/ckpt/dyn_disassemble-v3_frac0.1.pt	h=4	median=0.698	mean=0.750	p90=1.042
+disassemble-v3	experiments/ckpt/dyn_disassemble-v3_frac0.3.pt	h=4	median=0.700	mean=0.711	p90=0.810
+disassemble-v3	experiments/ckpt/dyn_disassemble-v3_frac1.0.pt	h=4	median=0.512	mean=0.551	p90=0.746
+stick-pull-v3	experiments/ckpt/dyn_stick-pull-v3_frac0.3.pt	h=4	median=5.071	mean=42.375	p90=61.870
+stick-pull-v3	experiments/ckpt/dyn_stick-pull-v3_frac0.1.pt	h=4	median=6.256	mean=43.107	p90=56.391
+stick-pull-v3	experiments/ckpt/dyn_stick-pull-v3_frac1.0.pt	h=4	median=2.482	mean=39.881	p90=56.504
