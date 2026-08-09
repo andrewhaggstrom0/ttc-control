@@ -108,3 +108,70 @@ def summarize(path):
 if __name__ == "__main__":
     import sys
     print(json.dumps(summarize(sys.argv[1]), indent=2))
+
+
+def within_episode_correlation(records, gamma=0.99):
+    """Per-decision correlation between verifier score and what actually followed.
+
+    Fixes the confound in verifier_outcome_correlation(): that version compares
+    one number per episode across episodes, so easy episodes (high reward, likely
+    success) drive the correlation regardless of whether the verifier is any
+    good. It reports ~+0.9 for oracle even on tasks where oracle performs badly.
+
+    Here we ask the question that actually matters: at a given decision point,
+    does a higher score for the chosen candidate predict a better realized
+    outcome? We z-score both quantities WITHIN each episode before pooling, so
+    between-episode difficulty cancels out.
+
+    Outcome = realized discounted reward-to-go from that decision onward,
+    computed from the logged per-chunk rewards.
+    """
+    grp = defaultdict(lambda: ([], []))
+    for r in records:
+        steps = r["steps"]
+        if len(steps) < 3:
+            continue
+        rew = np.array([s["reward"] for s in steps], dtype=np.float64)
+        rtg = np.zeros_like(rew)
+        acc = 0.0
+        for i in range(len(rew) - 1, -1, -1):
+            acc = rew[i] + gamma * acc
+            rtg[i] = acc
+        sc = np.array([s["chosen_score"] for s in steps], dtype=np.float64)
+        if sc.std() < 1e-12 or rtg.std() < 1e-12:
+            continue
+        sc = (sc - sc.mean()) / sc.std()          # z-score within episode
+        rtg = (rtg - rtg.mean()) / rtg.std()
+        a, b = grp[(r["selector"], r["k"])]
+        a.extend(sc.tolist()); b.extend(rtg.tolist())
+
+    out = defaultdict(dict)
+    for (sel, k), (sc, rt) in grp.items():
+        sc, rt = np.array(sc), np.array(rt)
+        if len(sc) < 20:
+            out[sel][k] = dict(corr=float("nan"), n=len(sc))
+        else:
+            out[sel][k] = dict(corr=float(np.corrcoef(sc, rt)[0, 1]), n=len(sc))
+    return dict(out)
+
+
+def optimism_gap(records):
+    """How much the chosen candidate's score exceeds the candidate-set median.
+
+    This is the selection pressure actually applied, per decision. If it grows
+    with K while within-episode correlation falls, search is buying itself
+    increasingly large predicted gains that increasingly fail to materialize --
+    which is the over-optimization mechanism stated directly.
+    """
+    out = defaultdict(dict)
+    grp = defaultdict(list)
+    for r in records:
+        for s in r["steps"]:
+            sc = np.array(s["scores"], dtype=np.float64)
+            if sc.size < 2 or sc.std() < 1e-12:
+                continue
+            grp[(r["selector"], r["k"])].append(
+                (sc[s["chosen_index"]] - np.median(sc)) / (sc.std() + 1e-12))
+    for (sel, k), v in grp.items():
+        out[sel][k] = float(np.mean(v)) if v else float("nan")
+    return dict(out)

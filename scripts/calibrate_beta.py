@@ -24,10 +24,16 @@ def main():
     p.add_argument("--n-episodes", type=int, default=5)
     p.add_argument("--k", type=int, default=64)
     p.add_argument("--horizon", type=int, default=4)
+    p.add_argument("--dynamics", default=None,
+                   help="checkpoint to calibrate against; defaults to the "
+                        "task's full-data model. Degraded models have a "
+                        "different disagreement scale, so calibrating "
+                        "against the wrong one confounds model quality "
+                        "with regularization strength.")
     a = p.parse_args()
 
     pol = load_policy(f"experiments/ckpt/bc_{a.task}.pt")
-    dyn = load_dynamics(f"experiments/ckpt/dyn_{a.task}.pt")
+    dyn = load_dynamics(a.dynamics or f"experiments/ckpt/dyn_{a.task}.pt")
     val = load_value(f"experiments/ckpt/val_{a.task}.pt")
 
     ret_spreads, dis_spreads, dis_all = [], [], []
