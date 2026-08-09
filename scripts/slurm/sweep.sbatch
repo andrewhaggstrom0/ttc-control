@@ -10,7 +10,11 @@
 #SBATCH --output=experiments/logs/sweep_%A_%a.out
 #SBATCH --error=experiments/logs/sweep_%A_%a.err
 
-set -euo pipefail
+# NOTE: no `set -u`. WashU's /etc/bashrc reads BASHRCSOURCED without a default,
+# so `set -u` plus any bashrc sourcing kills the job before it starts.
+set -eo pipefail
+
+cd /home/compute/a.haggstrom/ttc-control
 mkdir -p experiments/logs experiments/rollouts experiments/figs
 
 # Headless rendering; block ~/.local from shadowing the conda env.
@@ -28,15 +32,20 @@ TASK=${TASKS[$SLURM_ARRAY_TASK_ID]}
 # learned arm plans 4 and the value function bootstraps the tail.
 PLAN_H=4
 
-source ~/.bashrc
-conda activate ttc
+# Skip `conda activate` entirely: conda here is a system install whose base is
+# /usr, with no usable profile.d script, and activation is unnecessary for a
+# batch job. Putting the env's bin on PATH makes `python` the env interpreter.
+export CONDA_PREFIX=/home/compute/a.haggstrom/.conda/envs/ttc
+export PATH="$CONDA_PREFIX/bin:$PATH"
+
 
 echo "task=$TASK node=$(hostname) started=$(date -Is)"
+echo "python: $(which python)"
+python -c "import torch; print('cuda', torch.cuda.is_available())"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 
 # Beta scales with each task's return spread, so calibrate per task rather than
-# reusing one task's numbers. Costs ~2 min; prevents a sweep that measures
-# nothing because the penalty was mis-scaled.
+# reusing one task's numbers.
 BETAS=$(python scripts/calibrate_beta.py --task "$TASK" --horizon $PLAN_H \
         | grep 'suggested:' | sed 's/.*--betas //')
 echo "calibrated betas: $BETAS"
