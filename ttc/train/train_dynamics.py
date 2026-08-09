@@ -24,6 +24,10 @@ def main():
     p.add_argument("--frac", type=float, default=1.0,
                    help="subsample data to deliberately degrade model quality; "
                         "sweeping this varies model error independently of K")
+    p.add_argument("--hidden", type=int, default=400,
+                   help="shrink to degrade the model; subsampling "
+                        "alone barely works when 10 percent of the "
+                        "data still fits")
     p.add_argument("--seed", type=int, default=0)
     a = p.parse_args()
 
@@ -38,7 +42,7 @@ def main():
 
     obs_dim = eps[0]["obs"].shape[1]
     act_dim = eps[0]["act"].shape[1]
-    dyn = DynamicsEnsemble(obs_dim, act_dim, a.n_members)
+    dyn = DynamicsEnsemble(obs_dim, act_dim, a.n_members, hidden=a.hidden)
     dyn.set_normalizer(mean, std)
     opts = [torch.optim.AdamW(m.parameters(), lr=a.lr, weight_decay=1e-5)
             for m in dyn.members]
@@ -46,9 +50,17 @@ def main():
     # Bootstrapped batches: each member sees a different resample, which is what
     # makes ensemble disagreement a meaningful uncertainty signal rather than
     # just init noise.
-    loaders = [DataLoader(ds, batch_size=a.batch_size, shuffle=True,
+    # drop_last=True yields ZERO batches when the subsampled dataset is smaller
+    # than batch_size, which silently trains nothing and reports nan. Shrink the
+    # batch instead of failing quietly.
+    bs = min(a.batch_size, max(8, len(ds) // 8))
+    if bs < a.batch_size:
+        print(f"[warn] {len(ds)} samples: batch {a.batch_size} -> {bs}", flush=True)
+    loaders = [DataLoader(ds, batch_size=bs, shuffle=True,
                           num_workers=2, drop_last=True)
                for _ in range(a.n_members)]
+    assert len(loaders[0]) > 0, (
+        f"empty loader: {len(ds)} samples, batch {bs}. Raise --frac.")
 
     for ep in range(a.epochs):
         losses = np.zeros(a.n_members)
@@ -65,7 +77,7 @@ def main():
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     torch.save({"state_dict": dyn.state_dict(), "obs_dim": obs_dim,
                 "act_dim": act_dim, "n_members": a.n_members,
-                "frac": a.frac}, a.out)
+                "hidden": a.hidden, "frac": a.frac}, a.out)
     print(f"saved {a.out}")
 
 

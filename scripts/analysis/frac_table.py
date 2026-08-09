@@ -20,8 +20,8 @@ BETA_RE = re.compile(r"^(learned_h\d+)_beta([\d.]+)$")
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--dir", default="experiments/rollouts_frac")
-    p.add_argument("--errors", default="experiments/logs/model_error.tsv")
+    p.add_argument("--dir", default="experiments/rollouts_degrade")
+    p.add_argument("--errors", default="experiments/logs/degrade_error.tsv")
     a = p.parse_args()
 
     err = {}
@@ -32,7 +32,7 @@ def main():
             if len(parts) >= 4 and "median=" in line:
                 task = parts[0].strip()
                 dyn = parts[1].strip()
-                m = re.search(r"frac([\d.]+)\.pt", dyn)
+                m = re.search(r"_(d\d)\.pt", dyn)
                 med = float(re.search(r"median=([\d.]+)", line).group(1))
                 if m:
                     err[(task, m.group(1))] = med
@@ -40,8 +40,8 @@ def main():
     print(f"{'task':22s} {'frac':>6s} {'modelerr':>9s} "
           f"{'K=1':>7s} {'K=8':>7s} {'K=64':>7s} {'drop':>7s}")
     rows = []
-    for fdir in sorted(Path(a.dir).glob("frac*")):
-        frac = fdir.name.replace("frac", "")
+    for fdir in sorted(Path(a.dir).glob("d*")):
+        frac = fdir.name
         for f in sorted(fdir.glob("*_rollouts.jsonl")):
             recs = load(f)
             for r in recs:

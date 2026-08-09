@@ -43,7 +43,8 @@ def load_policy(path):
 
 def load_dynamics(path):
     ck = torch.load(path, map_location="cuda", weights_only=False)
-    d = DynamicsEnsemble(ck["obs_dim"], ck["act_dim"], ck["n_members"])
+    d = DynamicsEnsemble(ck["obs_dim"], ck["act_dim"], ck["n_members"],
+                         hidden=ck.get("hidden", 400))
     sd = dict(ck["state_dict"])
     # dis_mask postdates these checkpoints; derive it from the stored o_std
     # rather than retraining (the mask only affects the uncertainty readout).
