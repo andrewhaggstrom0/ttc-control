@@ -111,7 +111,9 @@ if __name__ == "__main__":
 
 
 def within_episode_correlation(records, gamma=0.99):
-    """Per-decision correlation between verifier score and what actually followed.
+    """DEPRECATED -- confounded by position in episode. Use scripts/audit_selection.py.
+
+    Per-decision correlation between verifier score and what actually followed.
 
     Fixes the confound in verifier_outcome_correlation(): that version compares
     one number per episode across episodes, so easy episodes (high reward, likely
@@ -156,7 +158,10 @@ def within_episode_correlation(records, gamma=0.99):
 
 
 def optimism_gap(records):
-    """How much the chosen candidate's score exceeds the candidate-set median.
+    """DEPRECATED -- this is the max-of-K order statistic of the score
+    distribution, near-identical for every arm including random.
+
+    How much the chosen candidate's score exceeds the candidate-set median.
 
     This is the selection pressure actually applied, per decision. If it grows
     with K while within-episode correlation falls, search is buying itself
