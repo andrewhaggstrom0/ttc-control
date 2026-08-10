@@ -12,7 +12,7 @@
 
 set -eo pipefail
 cd /home/compute/a.haggstrom/ttc-control
-mkdir -p experiments/logs experiments/rollouts_degrade
+mkdir -p experiments/logs experiments/rollouts_degrade_bball
 
 export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
 export PYTHONNOUSERSITE=1 TOKENIZERS_PARALLELISM=false PYTHONPATH=.
@@ -34,7 +34,7 @@ PLAN_H=4
 
 # ONE task. The dose-response must be within-task: pooling disassemble and
 # stick-pull last time produced a Simpson's paradox that reversed the sign.
-TASK=disassemble-v3
+TASK=basketball-v3
 
 echo "task=$TASK frac=$FRAC hidden=$HID epochs=$EP tag=$TAG started=$(date -Is)"
 DYN=experiments/ckpt/dyn_${TASK}_${TAG}.pt
@@ -43,7 +43,7 @@ python -m ttc.train.train_dynamics --tasks $TASK --epochs $EP \
   --frac $FRAC --hidden $HID --batch-size 64 --out $DYN
 
 python scripts/measure_model_error.py --task $TASK --dynamics $DYN \
-  --horizon $PLAN_H | tee -a experiments/logs/degrade_error.tsv
+  --horizon $PLAN_H | tee -a experiments/logs/degrade_error_bball.tsv
 
 BETAS=$(python scripts/calibrate_beta.py --task "$TASK" --horizon $PLAN_H \
         --dynamics $DYN | grep 'suggested:' | sed 's/.*--betas //')
@@ -57,6 +57,6 @@ python scripts/run_sweep.py \
   --plan-horizon $PLAN_H --betas $BETAS \
   --arms first learned \
   --n-episodes 50 --k-max 64 \
-  --out-dir experiments/rollouts_degrade/${TAG}
+  --out-dir experiments/rollouts_degrade_bball/${TAG}
 
 echo "finished=$(date -Is)"
