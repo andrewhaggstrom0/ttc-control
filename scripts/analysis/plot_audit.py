@@ -37,7 +37,7 @@ def main():
     ax.fill_between(ks, picked, best, color="#c0392b", alpha=0.10)
     ax.set_xscale("log", base=2)
     ax.set_xlabel("K (candidates per decision)")
-    ax.set_ylabel("true value (oracle 4-step return)")
+    ax.set_ylabel("true value (oracle 16-step return)")
     ax.set_title(f"Better candidates appear with K; the verifier finds none\n{task}",
                  fontsize=11)
     ax.grid(alpha=0.25); ax.legend(fontsize=9)
