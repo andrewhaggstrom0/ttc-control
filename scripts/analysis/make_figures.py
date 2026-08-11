@@ -113,6 +113,7 @@ def fig2(rolldir, out):
                 ls="--" if arm == "first" else "-")
         ax.fill_between(ks, y - se, y + se, color=COLORS[arm], alpha=0.12)
     ax.set_xscale("log", base=2)
+    ax.set_ylim(0.30, 0.80)
     ax.set_xlabel("K (candidates per decision)")
     ax.set_ylabel("success rate (pooled over 6 tasks)")
     ax.set_title("Selecting by a learned verifier is worse than not selecting")
@@ -175,7 +176,7 @@ def fig4(out):
             continue
         o = np.argsort(xs)
         xs, ys = np.array(xs)[o], np.array(ys)[o]
-        ax.plot(xs, ys, marker="o", ms=8, lw=1.8, color=colr, label=task)
+        ax.scatter(xs, ys, s=70, color=colr, label=task, zorder=3)
         for x, y in zip(xs, ys):
             ax.annotate(f"{x:.2f}", (x, y), fontsize=7,
                         xytext=(0, 7), textcoords="offset points", ha="center")
@@ -187,7 +188,7 @@ def fig4(out):
     ax.set_xscale("log")
     ax.set_xlabel("dynamics model error (median sigma, 4-step rollout)")
     ax.set_ylabel("degradation:  success(K=1) - success(K=64)")
-    ax.set_title("Search harm is non-monotonic in model quality")
+    ax.set_title("Degradation vs model error (no reliable trend; supplementary)", fontsize=10)
     ax.grid(alpha=0.25); ax.legend(fontsize=9)
     fig.tight_layout(); fig.savefig(out, dpi=180); plt.close(fig)
     print("wrote", out)
