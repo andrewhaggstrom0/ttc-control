@@ -1,0 +1,2 @@
+disassemble-v3	experiments/ckpt/dyn_disassemble-v3.pt	h=4	median=0.512	mean=0.551	p90=0.746
+basketball-v3	experiments/ckpt/dyn_basketball-v3.pt	h=4	median=0.126	mean=0.160	p90=0.284

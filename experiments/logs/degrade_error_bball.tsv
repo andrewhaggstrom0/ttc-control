@@ -1,0 +1,4 @@
+basketball-v3	experiments/ckpt/dyn_basketball-v3_d3.pt	h=4	median=4.441	mean=4.443	p90=6.252
+basketball-v3	experiments/ckpt/dyn_basketball-v3_d2.pt	h=4	median=0.430	mean=0.431	p90=0.601
+basketball-v3	experiments/ckpt/dyn_basketball-v3_d1.pt	h=4	median=0.435	mean=0.398	p90=0.477
+basketball-v3	experiments/ckpt/dyn_basketball-v3_d0.pt	h=4	median=0.111	mean=0.143	p90=0.244

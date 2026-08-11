@@ -43,6 +43,7 @@ def main():
     p.add_argument("--beta", type=float, default=0.0)
     p.add_argument("--n-exec", type=int, default=8)
     p.add_argument("--max-steps", type=int, default=400)
+    p.add_argument("--out", default=None, help="TSV for plotting")
     a = p.parse_args()
 
     pol = load_policy(f"experiments/ckpt/bc_{a.task}.pt")
@@ -96,6 +97,7 @@ def main():
           f"{len(stats[ks[0]]['picked'])} decisions\n")
     print(f"{'K':>4s} {'picked':>9s} {'best':>9s} {'mean':>9s} "
           f"{'norm regret':>12s}  verdict")
+    rows = []
     for k in ks:
         d = stats[k]
         r = float(np.mean(d["regret"])) if d["regret"] else float("nan")
@@ -105,6 +107,17 @@ def main():
                    "ADVERSARIAL")
         print(f"{k:4d} {np.mean(d['picked']):9.3f} {np.mean(d['best']):9.3f} "
               f"{np.mean(d['mean']):9.3f} {r:12.3f}  {verdict}")
+        rows.append((k, np.mean(d['picked']), np.mean(d['best']),
+                     np.mean(d['mean']), r))
+
+    if a.out:
+        import os
+        newf = not os.path.exists(a.out)
+        with open(a.out, "a") as fh:
+            if newf:
+                fh.write("task\tk\tpicked\tbest\tmean\tregret\n")
+            for k, pk, bs, mn, rg in rows:
+                fh.write(f"{a.task}\t{k}\t{pk:.4f}\t{bs:.4f}\t{mn:.4f}\t{rg:.4f}\n")
 
 
 if __name__ == "__main__":
