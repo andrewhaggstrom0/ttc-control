@@ -42,14 +42,16 @@ def collect(a):
     env = make_env(a.task, seed=a.episode, max_steps=1000)
     obs, _ = env.reset(seed=a.episode)
     term = trunc = False
-    for t in range(a.warmup):
-        chunk = pol.sample(obs, n=1, seed=a.episode * 100 + t)[0]
+    step = 0
+    while step < a.warmup and not (term or trunc):
+        chunk = pol.sample(obs, n=1, seed=a.episode * 100 + step)[0]
         for act in chunk[:a.n_exec]:
-            obs, _, term, trunc, _ = env.step(act)
-            if term or trunc:
+            obs, _, term, trunc, _info = env.step(act)
+            step += 1
+            if _info.get("success", 0.0):
+                term = True   # never branch from an already-solved state
+            if term or trunc or step >= a.warmup:
                 break
-        if term or trunc:
-            break
 
     print(f"rolling {a.k} futures, up to {a.horizon} steps each...")
     pool, futures, belief, _ = roll_futures(

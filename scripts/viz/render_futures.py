@@ -127,7 +127,7 @@ def roll_futures(env, pol, dyn, val, k, seed, n_exec, plan_h, horizon):
                 break
 
         while steps < horizon and not (success or term or trunc):
-            nxt = pol.sample(obs, n=1, seed=seed + 7919 * ci + steps)[0]
+            nxt = pol.sample(obs, n=1, seed=seed + steps)[0]
             for a in nxt[:n_exec]:                     # then the base policy
                 obs, _, term, trunc, info = env.step(a)
                 pts.append(track()); actions.append(np.array(a)); steps += 1
@@ -207,14 +207,16 @@ def main():
     env = make_env(a.task, seed=a.episode, max_steps=1000)
     obs, _ = env.reset(seed=a.episode)
     term = trunc = False
-    for t in range(a.warmup):
-        chunk = pol.sample(obs, n=1, seed=a.episode * 100 + t)[0]
+    step = 0
+    while step < a.warmup and not (term or trunc):
+        chunk = pol.sample(obs, n=1, seed=a.episode * 100 + step)[0]
         for act in chunk[:a.n_exec]:
-            obs, _, term, trunc, _ = env.step(act)
-            if term or trunc:
+            obs, _, term, trunc, _info = env.step(act)
+            step += 1
+            if _info.get("success", 0.0):
+                term = True   # never branch from an already-solved state
+            if term or trunc or step >= a.warmup:
                 break
-        if term or trunc:
-            break
 
     print(f"rolling {a.k} futures, up to {a.horizon} steps each...")
     pool, futures, belief, snap = roll_futures(

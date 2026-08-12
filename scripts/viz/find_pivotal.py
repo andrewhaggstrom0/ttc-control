@@ -37,7 +37,7 @@ def probe(env, pol, k, seed, n_exec, horizon):
             if term or trunc or success:
                 break
         while steps < horizon and not (success or term or trunc):
-            nxt = pol.sample(obs, n=1, seed=seed + 7919 * ci + steps)[0]
+            nxt = pol.sample(obs, n=1, seed=seed + steps)[0]
             for a in nxt[:n_exec]:
                 obs, _, term, trunc, info = env.step(a)
                 steps += 1
@@ -45,6 +45,11 @@ def probe(env, pol, k, seed, n_exec, horizon):
                 if term or trunc or success or steps >= horizon:
                     break
         wins += int(success)
+        if steps <= 1:
+            # Futures that end immediately mean the state is already
+            # terminal; its success fraction is meaningless.
+            env.restore_state(snap)
+            return -1.0
         env.restore_state(snap)
     return wins / len(pool)
 
@@ -72,13 +77,19 @@ def main():
             while step < w and not (term or trunc):
                 chunk = pol.sample(obs, n=1, seed=ep * 100 + step)[0]
                 for act in chunk[:a.n_exec]:
-                    obs, _, term, trunc, _ = env.step(act)
+                    obs, _, term, trunc, _info = env.step(act)
                     step += 1
+                    if _info.get('success', 0.0):
+                        term = True   # stop warmup before the task is solved
                     if term or trunc:
                         break
             if term or trunc:
                 break
             frac = probe(env, pol, a.k, candidate_seed(ep, w), a.n_exec, a.horizon)
+            if frac < 0:
+                print(f'  ep {ep:2d}  warmup {w:3d}  ->  already terminal, skipped',
+                      flush=True)
+                continue
             results.append((abs(frac - 0.5), ep, w, frac))
             print(f"  ep {ep:2d}  warmup {w:3d}  ->  {frac:.2f} of futures succeed",
                   flush=True)
